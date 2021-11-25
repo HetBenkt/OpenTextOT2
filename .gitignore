@@ -1,0 +1,4 @@
+/authentication/src/test/resources/config.properties
+/authentication/target
+/.idea
+*.iml
