@@ -20,26 +20,16 @@ import java.net.http.HttpResponse;
 
 import static java.net.http.HttpResponse.BodyHandlers;
 
+//todo move the property reading in a utils class/module!
 public class AuthenticationDAO implements IAuthenticationDAO {
-    private final Configuration configCommon;
-
-    public AuthenticationDAO() {
-        PropertiesBuilderParameters properties = new Parameters().properties();
-        properties.setFileName("config.properties");
-
-        FileBasedConfigurationBuilder<FileBasedConfiguration> builder =
-                new FileBasedConfigurationBuilder<FileBasedConfiguration>(PropertiesConfiguration.class)
-                        .configure(properties);
-
-        try {
-            configCommon = builder.getConfiguration();
-        } catch (ConfigurationException e) {
-            throw new RuntimeException("Config file not found!", e);
-        }
-    }
+    private Configuration configCommon;
 
     @Override
     public String getOauth2Token() throws AuthenticationException {
+        if(configCommon == null) {
+            initConfigurationFile("config.properties");
+        }
+
         ObjectMapper objectMapper = new ObjectMapper();
         try {
             String requestBody = objectMapper
@@ -54,10 +44,29 @@ public class AuthenticationDAO implements IAuthenticationDAO {
 
             HttpClient client = HttpClient.newHttpClient();
             HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
-            JsonNode jsonNode = objectMapper.readTree(response.body());
-            return jsonNode.get("access_token").asText();
+            if(response.statusCode() == 200) {
+                JsonNode jsonNode = objectMapper.readTree(response.body());
+                return jsonNode.get("access_token").asText();
+            } else {
+                throw new AuthenticationException(response.body());
+            }
         } catch (URISyntaxException | IOException | InterruptedException e) {
             throw new AuthenticationException(e.getMessage());
+        }
+    }
+
+    @Override
+    public void initConfigurationFile(String fileName) {
+        PropertiesBuilderParameters properties = new Parameters().properties();
+        properties.setFileName(fileName);
+
+        FileBasedConfigurationBuilder<FileBasedConfiguration> builder =
+                new FileBasedConfigurationBuilder<FileBasedConfiguration>(PropertiesConfiguration.class)
+                        .configure(properties);
+        try {
+            configCommon = builder.getConfiguration();
+        } catch (ConfigurationException e) {
+            throw new RuntimeException("Config file not found!", e);
         }
     }
 }

@@ -9,4 +9,9 @@ public enum EAuthenticationService implements IAuthenticationService {
     public String getOauth2Token() throws AuthenticationException {
         return authenticationDAO.getOauth2Token();
     }
+
+    @Override
+    public void setPropertyFile(String fileName) {
+        authenticationDAO.initConfigurationFile(fileName);
+    }
 }
